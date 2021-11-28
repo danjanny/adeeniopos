@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "944017369591",
+    "project_id": "danjanny-367c9",
+    "storage_bucket": "danjanny-367c9.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:944017369591:android:056c09d7e6c2251dab26f2",
+        "android_client_info": {
+          "package_name": "com.danjanny.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "944017369591-a5cgcbg5epa0jk147u3r0m8s549ra1a7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCAiK3bzbZYdUoGAXioQPUpKjWiqpQG0UE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "944017369591-a5cgcbg5epa0jk147u3r0m8s549ra1a7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
