@@ -1,6 +1,13 @@
+import 'dart:convert';
+
+import 'package:app/api_endpoint.dart';
+import 'package:app/order/models/order_customer_model.dart';
 import 'package:app/order/models/order_model.dart';
+import 'package:app/simple_exception.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+
+import 'package:http/http.dart' as http;
 
 class OrderRepo {
   static OrderRepo? _productRepo;
@@ -87,12 +94,27 @@ class OrderRepo {
 
   Future<int?> removeItem(int id) async {
     Database? db = await database;
-    return await db!
-        .delete(orderTable, where: 'id = ?', whereArgs: [id]);
+    return await db!.delete(orderTable, where: 'id = ?', whereArgs: [id]);
   }
 
-  void postData() async {
-    // http request post data
-  }
+  Future<OrderSubmitResponse> postData(OrderCustomer orderCustomer) async {
+    // print(orderCustomer.toJson());
+    OrderSubmitResponse orderSubmitResponse;
+    try {
+      var orderResponse = await http.post(Uri.parse(ApiEndpoint.orderUrl),
+          body: {"data": jsonEncode(orderCustomer)});
 
+      var orderSubmitResponseObj =
+          OrderSubmitResponse.fromJson(jsonDecode(orderResponse.body));
+      if (orderSubmitResponseObj.status == "error") {
+        throw SimpleException(orderSubmitResponseObj.message);
+      }
+
+      orderSubmitResponse = orderSubmitResponseObj;
+    } catch (e) {
+      orderSubmitResponse = OrderSubmitResponse.error("error", e.toString());
+    }
+
+    return orderSubmitResponse;
+  }
 }

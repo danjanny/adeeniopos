@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:app/order/models/order_customer_model.dart';
 import 'package:app/order/models/order_model.dart';
 import 'package:app/order/providers/order_provider.dart';
 import 'package:app/order/providers/product_provider.dart';
@@ -201,7 +204,15 @@ class _CartPageState extends State<CartPage> {
                                             lastDate: DateTime(2100)))!;
 
                                         var dayStr = date.day.toString();
+                                        if(date.day < 10) {
+                                          dayStr = "0" + dayStr;
+                                        }
+
                                         var monStr = date.month.toString();
+                                        if(date.month < 10) {
+                                          monStr = "0" + monStr;
+                                        }
+
                                         var yearStr = date.year.toString();
                                         setState(() {
                                           _dueDateFormController.text =
@@ -270,7 +281,7 @@ class _CartPageState extends State<CartPage> {
                                           mainAxisAlignment:
                                               MainAxisAlignment.spaceBetween,
                                           children: [
-                                            Text(order.itemName +
+                                            Text(order.itemNm +
                                                 " (" +
                                                 order.itemPcs.toString() +
                                                 " pcs)"),
@@ -357,6 +368,16 @@ class _CartPageState extends State<CartPage> {
                                   return;
                                 }
 
+                                _pd = ProgressDialog(context: context);
+                                _pd.show(
+                                  msqFontWeight: FontWeight.normal,
+                                  valuePosition: ValuePosition.right,
+                                  borderRadius: 0,
+                                  max: 100,
+                                  barrierDismissible: true,
+                                  msg: "Send data to server",
+                                );
+
                                 // init data order
                                 var customerNm =
                                     _customerFormNameController.text;
@@ -368,27 +389,54 @@ class _CartPageState extends State<CartPage> {
                                 var formattedDateNow =
                                     formatter.format(dateNow);
 
-                                var dueDate = _dueDatePostServer;
+                                var dueDate = _dueDatePostServer.toString();
                                 var totalBayar = orderProvider.totalOrder;
                                 var dp = int.parse(
                                     _dpFormController.text.replaceAll(',', ''));
                                 var sisaBayar = totalBayar - dp;
 
                                 // map order data
-                                var orderData = {
+                                Map<String, String> orderData = {
                                   'customer_nm': customerNm,
                                   'customer_phone': customerPhone,
-                                  'current_date': formattedDateNow,
+                                  'transaction_date': formattedDateNow,
                                   'due_date': dueDate,
                                   'total_bayar': totalBayar.toString(),
                                   'dp': dp.toString(),
-                                  'sisa_bayar': sisaBayar
+                                  'sisa_bayar': sisaBayar.toString()
                                 };
 
-                                print(orderData.toString());
+                                final prefs =
+                                    await SharedPreferences.getInstance();
+                                var userId = prefs.getString('id'); // user id
 
-                                _shareNotaWhatsapp(
-                                    context, orderData, orderProvider);
+                                var orderCustomer = OrderCustomer(
+                                    userId!,
+                                    orderData['customer_nm']!,
+                                    orderData['customer_phone']!,
+                                    orderData['transaction_date']!,
+                                    orderData['due_date']!,
+                                    orderData['total_bayar']!,
+                                    orderData['dp']!,
+                                    orderData['sisa_bayar']!,
+                                    orderProvider.orders);
+
+                                print(orderCustomer.toString());
+                                OrderSubmitResponse orderSubmitResponse =
+                                    await OrderRepo().postData(orderCustomer);
+
+                                if (orderSubmitResponse.status == "ok") {
+                                  _pd.close();
+                                  orderData['invoice_no'] = orderSubmitResponse.data.invoiceNo;
+
+                                  // 1. print
+
+                                  // 2. share nota to WA
+                                  _shareNotaWhatsapp(
+                                      context, orderData, orderProvider);
+                                } else {
+                                  Fluttertoast.showToast(msg: orderSubmitResponse.message);
+                                }
 
                                 //
                                 // // if bluetooth has been connected
@@ -453,10 +501,10 @@ class _CartPageState extends State<CartPage> {
     bluetooth.printNewLine();
     for (var order in orders) {
       var itemName = "";
-      if (order.itemName.length < 5) {
-        itemName = order.itemName;
+      if (order.itemNm.length < 5) {
+        itemName = order.itemNm;
       } else {
-        itemName = order.itemName.substring(0, 6);
+        itemName = order.itemNm.substring(0, 6);
       }
 
       bluetooth.printLeftRight(
@@ -486,9 +534,10 @@ class _CartPageState extends State<CartPage> {
 
   void _shareNotaWhatsapp(BuildContext context, Map<String, Object> orderData,
       OrderProvider orderProvider) async {
+    var invoiceNo = orderData['invoice_no'];
     var customerNm = orderData['customer_nm'];
     var customerPhone = orderData['customer_phone'];
-    var currentDate = orderData['current_date'];
+    var currentDate = orderData['transaction_date'];
     var totalBayar =
         Util.rupiahFormat(int.parse(orderData['total_bayar'].toString()));
     var dp = Util.rupiahFormat(int.parse(orderData['dp'].toString()));
@@ -499,23 +548,25 @@ class _CartPageState extends State<CartPage> {
     StringBuffer sb = StringBuffer();
     sb.write("Mezisan\n");
     sb.write("\n");
+    sb.write("Invoice No : $invoiceNo\n");
     sb.write("Customer : $customerNm\n");
     sb.write("Tgl Transaksi : $currentDate\n");
-    sb.write("----------------\n");
+    sb.write("---------------------------------------------\n");
     for (var order in orderProvider.orders) {
-      var itemName = order.itemName;
+      var itemName = order.itemNm;
       var itemPcs = order.itemPcs.toString();
       var itemPrice = Util.rupiahFormat(int.parse(order.itemPrice.toString()));
       var itemSubtotal =
           Util.rupiahFormat(int.parse(order.itemSubtotal.toString()));
       sb.write("$itemName ($itemPcs pcs x $itemPrice) : $itemSubtotal\n");
     }
-    sb.write("----------------\n");
+    sb.write("---------------------------------------------\n");
     sb.write("Tanggal Selesai : ${_dueDateFormController.text}\n");
     sb.write("Total Bayar : $totalBayar\n");
     sb.write("DP : $dp\n");
     sb.write("Sisa Bayar : $sisaBayar\n");
-    sb.write("----------------\n");
+    sb.write("---------------------------------------------\n");
+    sb.write("\n");
     sb.write("Terima kasih telah order di mezisan\n");
 
     // encode URI
