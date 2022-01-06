@@ -40,13 +40,15 @@ class Product {
   late String id;
   late String productName;
   late String productImg;
+  late String? productPrice;
   late String productSummary;
 
-  Product(this.id, this.productName, this.productImg, this.productSummary);
+  Product(this.id, this.productName, this.productImg, this.productPrice,
+      this.productSummary); // Product(this.id, this.productName, this.productImg, this.productSummary);
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(json['id'], json['product_nm'], json['product_img'],
-        json['product_summary']);
+        json['product_price'], json['product_summary']);
   }
 
   @override

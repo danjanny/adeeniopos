@@ -1,8 +1,8 @@
 import 'package:app/authnew/repos/auth_repository.dart';
-import 'package:app/authnew/views/welcome_page.dart';
+import 'package:app/authpos/models/user_model.dart';
 import 'package:app/authpos/views/login_page.dart';
-import 'package:app/dashboard/views/home_page.dart';
 import 'package:app/order/views/product_page.dart';
+import 'package:app/order/views/report_page.dart';
 import 'package:flutter/material.dart';
 
 class NewApp extends StatelessWidget {
@@ -11,25 +11,31 @@ class NewApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Mezisan POS',
+      title: 'POS',
       routes: {'/login': (context) => LoginPage()},
       theme: ThemeData(
-        primarySwatch: Colors.teal,
-        primaryColor: const Color(0xff00365A)
-      ),
+          primarySwatch: Colors.blueGrey,
+          primaryColor: const Color(0xff3958B4)),
       home: FutureBuilder(
         future: AuthRepository.checkUserSession(),
         builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const CircularProgressIndicator();
           } else {
-            if (snapshot.data != 1) {
-              // belum ada user session
-              return LoginPage();
+            late Widget nextScreen;
+            var userObj = snapshot.data as User;
+            if (!snapshot.hasData) {
+              nextScreen = LoginPage();
             } else {
-              // sudah ada user session
-              return ProductPage();
+              // kasir
+              if (userObj.idGroupAccess == "2") {
+                nextScreen = ProductPage(user: userObj);
+                // admin
+              } else if (userObj.idGroupAccess == "1") {
+                nextScreen = ReportPage(user: userObj);
+              }
             }
+            return nextScreen;
           }
         },
       ),

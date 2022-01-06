@@ -9,7 +9,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
 import 'package:intl/intl.dart';
-
+import 'package:share_plus/share_plus.dart';
 
 class ProductDetailPage extends StatefulWidget {
   Product product;
@@ -23,12 +23,24 @@ class ProductDetailPage extends StatefulWidget {
 class _ProductDetailPageState extends State<ProductDetailPage> {
   final _formKey = GlobalKey<FormState>();
 
+  late Product product;
+
   final _itemPriceFormController = TextEditingController();
   final _itemPcsFormController = TextEditingController();
   final _itemNoteFormController = TextEditingController();
 
   static const _locale = 'en';
-  String _formatNumber(String s) => NumberFormat.decimalPattern(_locale).format(int.parse(s));
+
+  @override
+  void initState() {
+    var price = widget.product.productPrice;
+    if (price != null) {
+      _itemPriceFormController.text = _formatNumber(price.replaceAll(',', ''));
+    }
+  }
+
+  String _formatNumber(String s) =>
+      NumberFormat.decimalPattern(_locale).format(int.parse(s));
 
   @override
   Widget build(BuildContext context) {
@@ -68,155 +80,181 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     child: Consumer<ProductProvider>(
                         builder: (_, productProvider, __) {
                       return SingleChildScrollView(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(20),
-                              color: Colors.white,
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(product.productName,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 20)),
-                                  productProvider.itemSubtotal == 0
-                                      ? const Text('')
-                                      : Text(
-                                          Util.rupiahFormat(
-                                              productProvider.itemSubtotal),
+                        reverse: true,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                color: Colors.white,
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Flexible(
+                                      child: Text(product.productName,
                                           style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 20)),
-                                ],
+                                    ),
+                                    productProvider.itemSubtotal == 0
+                                        ? const Text('')
+                                        : Text(
+                                            Util.rupiahFormat(
+                                                productProvider.itemSubtotal),
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 20)),
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(
-                              height: 10,
-                            ),
-                            Container(
-                              color: Colors.white,
-                              padding: const EdgeInsets.all(20),
-                              width: MediaQuery.of(context).size.width,
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    children: [
-                                      Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          TextFormField(
-                                              controller:
-                                                  _itemPriceFormController,
-                                              onChanged: (value) {
-                                                value = _formatNumber(value.replaceAll(',', ''));
-                                                _itemPriceFormController.value = TextEditingValue(
-                                                  text: value,
-                                                  selection: TextSelection.collapsed(offset: value.length),
-                                                );
-                                              },
-                                              keyboardType:
-                                                  TextInputType.number,
-                                              decoration: const InputDecoration(
-                                                  border: OutlineInputBorder(),
-                                                  hintText: "Harga harus diisi",
-                                                  prefixIcon: Padding(
-                                                    padding:
-                                                        EdgeInsets.only(top: 1),
-                                                    child: Icon(Icons.money),
-                                                  ),
-                                                  labelText: 'Harga'),
-                                              validator: (String? value) {
-                                                if (value!.isEmpty) {
-                                                  return 'Username harus diisi';
-                                                }
-                                                return null;
-                                              }),
-                                          const SizedBox(
-                                            height: 10,
-                                          ),
-                                          TextFormField(
-                                              controller:
-                                                  _itemPcsFormController,
-                                              keyboardType:
-                                                  TextInputType.number,
-                                              decoration: const InputDecoration(
-                                                  border: OutlineInputBorder(),
-                                                  hintText:
-                                                      "Item pcs harus diisi",
-                                                  prefixIcon: Padding(
-                                                    padding:
-                                                        EdgeInsets.only(top: 1),
-                                                    child: Icon(Icons
-                                                        .add_shopping_cart_sharp),
-                                                  ),
-                                                  labelText: 'Pcs'),
-                                              validator: (String? value) {
-                                                if (value!.isEmpty) {
-                                                  return 'Username harus diisi';
-                                                }
-                                                return null;
-                                              }),
-                                          const SizedBox(
-                                            height: 10,
-                                          ),
-                                          TextFormField(
-                                            controller: _itemNoteFormController,
-                                            keyboardType:
-                                                TextInputType.multiline,
-                                            decoration: const InputDecoration(
-                                                border: OutlineInputBorder(),
-                                                hintText: "Catatan",
-                                                prefixIcon: Padding(
-                                                  padding:
-                                                      EdgeInsets.only(top: 1),
-                                                  child:
-                                                      Icon(Icons.note_outlined),
-                                                ),
-                                                labelText: 'Catatan'),
-                                            validator: (String? value) {
-                                              return null;
-                                            },
-                                            maxLines: null,
-                                          ),
-                                          const SizedBox(height: 20),
-                                          SizedBox(
-                                              child: ElevatedButton(
-                                                onPressed: () {
-                                                  var itemPrice = int.parse(
-                                                      _itemPriceFormController
-                                                          .text.replaceAll(',', ''));
-                                                  var itemPcs = int.parse(
-                                                      _itemPcsFormController
-                                                          .text.replaceAll(',', ''));
-                                                  productProvider
-                                                      .calculateSubtotal(
-                                                          itemPrice, itemPcs);
+                              const SizedBox(
+                                height: 10,
+                              ),
+                              Container(
+                                color: Colors.white,
+                                padding: const EdgeInsets.all(20),
+                                width: MediaQuery.of(context).size.width,
+                                child: Column(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      children: [
+                                        Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            TextFormField(
+                                                controller:
+                                                    _itemPriceFormController,
+                                                onChanged: (value) {
+                                                  value = _formatNumber(value
+                                                      .replaceAll(',', ''));
+                                                  _itemPriceFormController
+                                                      .value = TextEditingValue(
+                                                    text: value,
+                                                    selection:
+                                                        TextSelection.collapsed(
+                                                            offset:
+                                                                value.length),
+                                                  );
                                                 },
-                                                child: const Text('Hitung',
-                                                    style: TextStyle(
-                                                        color: Colors.white,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 16)),
-                                                // style: ElevatedButton.styleFrom(
-                                                //     primary: Colors.indigoAccent),
-                                              ),
-                                              width: double.infinity,
-                                              height: 50)
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            )
-                          ],
+                                                keyboardType:
+                                                    TextInputType.number,
+                                                decoration:
+                                                    const InputDecoration(
+                                                        border:
+                                                            OutlineInputBorder(),
+                                                        hintText:
+                                                            "Harga harus diisi",
+                                                        prefixIcon: Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  top: 1),
+                                                          child:
+                                                              Icon(Icons.money),
+                                                        ),
+                                                        labelText: 'Harga'),
+                                                validator: (String? value) {
+                                                  if (value!.isEmpty) {
+                                                    return 'Username harus diisi';
+                                                  }
+                                                  return null;
+                                                }),
+                                            const SizedBox(
+                                              height: 10,
+                                            ),
+                                            TextFormField(
+                                                controller:
+                                                    _itemPcsFormController,
+                                                keyboardType:
+                                                    TextInputType.number,
+                                                decoration:
+                                                    const InputDecoration(
+                                                        border:
+                                                            OutlineInputBorder(),
+                                                        hintText:
+                                                            "Item pcs harus diisi",
+                                                        prefixIcon: Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  top: 1),
+                                                          child: Icon(Icons
+                                                              .add_shopping_cart_sharp),
+                                                        ),
+                                                        labelText: 'Pcs'),
+                                                validator: (String? value) {
+                                                  if (value!.isEmpty) {
+                                                    return 'Username harus diisi';
+                                                  }
+                                                  return null;
+                                                }),
+                                            const SizedBox(
+                                              height: 10,
+                                            ),
+                                            TextFormField(
+                                              controller:
+                                                  _itemNoteFormController,
+                                              keyboardType:
+                                                  TextInputType.multiline,
+                                              decoration: const InputDecoration(
+                                                  border: OutlineInputBorder(),
+                                                  hintText: "Catatan",
+                                                  prefixIcon: Padding(
+                                                    padding:
+                                                        EdgeInsets.only(top: 1),
+                                                    child: Icon(
+                                                        Icons.note_outlined),
+                                                  ),
+                                                  labelText: 'Catatan'),
+                                              validator: (String? value) {
+                                                return null;
+                                              },
+                                              maxLines: null,
+                                            ),
+                                            const SizedBox(height: 20),
+                                            SizedBox(
+                                                child: ElevatedButton(
+                                                  onPressed: () async {
+                                                    var itemPrice = int.parse(
+                                                        _itemPriceFormController
+                                                            .text
+                                                            .replaceAll(
+                                                                ',', ''));
+                                                    var itemPcs = int.parse(
+                                                        _itemPcsFormController
+                                                            .text
+                                                            .replaceAll(
+                                                                ',', ''));
+                                                    productProvider
+                                                        .calculateSubtotal(
+                                                            itemPrice, itemPcs);
+                                                  },
+                                                  child: const Text('Hitung',
+                                                      style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 16)),
+                                                  // style: ElevatedButton.styleFrom(
+                                                  //     primary: Colors.indigoAccent),
+                                                ),
+                                                width: double.infinity,
+                                                height: 50)
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              )
+                            ],
+                          ),
                         ),
                       );
                     })),
@@ -233,10 +271,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                 // init value of order model
                                 var productId = int.parse(product.id);
                                 var itemName = product.productName;
-                                var itemPrice =
-                                    int.parse(_itemPriceFormController.text.replaceAll(',', ''));
-                                var itemPcs =
-                                    int.parse(_itemPcsFormController.text.replaceAll(',', ''));
+                                var itemPrice = int.parse(
+                                    _itemPriceFormController.text
+                                        .replaceAll(',', ''));
+                                var itemPcs = int.parse(_itemPcsFormController
+                                    .text
+                                    .replaceAll(',', ''));
                                 var itemNote = _itemNoteFormController.text;
                                 var itemSubtotal = itemPrice * itemPcs;
 

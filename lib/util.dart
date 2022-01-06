@@ -9,7 +9,5 @@ class Util {
   static String textFormFieldRupiahFormat(int value) {
     var formatter = NumberFormat('###,###,###,###');
     return formatter.format(value);
-
-
   }
 }

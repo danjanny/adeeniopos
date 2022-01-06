@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:app/constant.dart';
 import 'package:app/order/models/order_customer_model.dart';
 import 'package:app/order/models/order_model.dart';
 import 'package:app/order/providers/order_provider.dart';
@@ -59,17 +60,6 @@ class _CartPageState extends State<CartPage> {
   }
 
   Future<void> initPlatformState() async {
-    // block UI : show progress dialog
-    // _pd = ProgressDialog(context: context);
-    // _pd.show(
-    //   msqFontWeight: FontWeight.normal,
-    //   valuePosition: ValuePosition.right,
-    //   borderRadius: 0,
-    //   max: 100,
-    //   barrierDismissible: true,
-    //   msg: "Logging In",
-    // );
-
     bool? isConnected = await bluetooth.isConnected;
     List<BluetoothDevice> devices = [];
 
@@ -80,19 +70,16 @@ class _CartPageState extends State<CartPage> {
     bluetooth.onStateChanged().listen((state) {
       switch (state) {
         case BlueThermalPrinter.CONNECTED:
-          // _pd.close();
           setState(() {
             _connected = true;
           });
           break;
         case BlueThermalPrinter.DISCONNECTED:
-          // _pd.close();
           setState(() {
             _connected = false;
           });
           break;
         default:
-          // _pd.close();
           break;
       }
     });
@@ -100,15 +87,13 @@ class _CartPageState extends State<CartPage> {
     if (!mounted) return;
     setState(() {
       _devices = devices;
-      _devices.forEach((device) {
+      for (var device in _devices) {
         bluetooth.connect(device);
-        print(device.name);
-      });
+      }
     });
 
     if (isConnected!) {
       setState(() {
-        print(_connected);
         _connected = true;
       });
     }
@@ -204,12 +189,12 @@ class _CartPageState extends State<CartPage> {
                                             lastDate: DateTime(2100)))!;
 
                                         var dayStr = date.day.toString();
-                                        if(date.day < 10) {
+                                        if (date.day < 10) {
                                           dayStr = "0" + dayStr;
                                         }
 
                                         var monStr = date.month.toString();
-                                        if(date.month < 10) {
+                                        if (date.month < 10) {
                                           monStr = "0" + monStr;
                                         }
 
@@ -259,9 +244,9 @@ class _CartPageState extends State<CartPage> {
                                           ),
                                           labelText: 'DP'),
                                       validator: (String? value) {
-                                        if (value!.isEmpty) {
-                                          return 'DP harus diisi';
-                                        }
+                                        // if (value!.isEmpty) {
+                                        //   return 'DP harus diisi';
+                                        // }
                                         return null;
                                       }),
                                 ],
@@ -281,10 +266,12 @@ class _CartPageState extends State<CartPage> {
                                           mainAxisAlignment:
                                               MainAxisAlignment.spaceBetween,
                                           children: [
-                                            Text(order.itemNm +
-                                                " (" +
-                                                order.itemPcs.toString() +
-                                                " pcs)"),
+                                            Flexible(
+                                              child: Text(order.itemNm +
+                                                  " (" +
+                                                  order.itemPcs.toString() +
+                                                  " pcs)"),
+                                            ),
                                             Text(Util.rupiahFormat(
                                                 order.itemSubtotal)),
                                             IconButton(
@@ -299,13 +286,15 @@ class _CartPageState extends State<CartPage> {
                                           mainAxisAlignment:
                                               MainAxisAlignment.start,
                                           children: [
-                                            Container(
-                                              child: Text(order.itemNote,
-                                                  style: const TextStyle(
-                                                      fontStyle:
-                                                          FontStyle.italic)),
-                                              margin: const EdgeInsets.only(
-                                                  top: 15),
+                                            Flexible(
+                                              child: Container(
+                                                child: Text(order.itemNote,
+                                                    style: const TextStyle(
+                                                        fontStyle:
+                                                            FontStyle.italic)),
+                                                margin: const EdgeInsets.only(
+                                                    top: 15),
+                                              ),
                                             )
                                           ],
                                         )
@@ -381,18 +370,22 @@ class _CartPageState extends State<CartPage> {
                                 // init data order
                                 var customerNm =
                                     _customerFormNameController.text;
-                                var customerPhone = _phoneFormController.text
-                                    .replaceFirst('0', '+62');
+                                var customerPhone = _phoneFormController.text;
 
                                 var dateNow = DateTime.now();
-                                var formatter = DateFormat('dd/MM/yyyy');
+                                var formatter = DateFormat('dd/MM/yyyy H:m:s');
                                 var formattedDateNow =
                                     formatter.format(dateNow);
 
                                 var dueDate = _dueDatePostServer.toString();
                                 var totalBayar = orderProvider.totalOrder;
-                                var dp = int.parse(
-                                    _dpFormController.text.replaceAll(',', ''));
+
+                                int dp = 0;
+                                if (_dpFormController.text != '') {
+                                  dp = int.parse(_dpFormController.text
+                                      .replaceAll(',', ''));
+                                }
+
                                 var sisaBayar = totalBayar - dp;
 
                                 // map order data
@@ -409,9 +402,11 @@ class _CartPageState extends State<CartPage> {
                                 final prefs =
                                     await SharedPreferences.getInstance();
                                 var userId = prefs.getString('id'); // user id
+                                var companyId = prefs.getString('company_id');
 
                                 var orderCustomer = OrderCustomer(
                                     userId!,
+                                    companyId!,
                                     orderData['customer_nm']!,
                                     orderData['customer_phone']!,
                                     orderData['transaction_date']!,
@@ -421,36 +416,28 @@ class _CartPageState extends State<CartPage> {
                                     orderData['sisa_bayar']!,
                                     orderProvider.orders);
 
-                                print(orderCustomer.toString());
                                 OrderSubmitResponse orderSubmitResponse =
                                     await OrderRepo().postData(orderCustomer);
 
                                 if (orderSubmitResponse.status == "ok") {
                                   _pd.close();
-                                  orderData['invoice_no'] = orderSubmitResponse.data.invoiceNo;
+                                  orderData['invoice_no'] =
+                                      orderSubmitResponse.data.invoiceNo;
 
                                   // 1. print
+                                  if ((await bluetooth.isConnected)!) {
+                                    // print receipt
+                                    _printNota(
+                                        context, orderData, orderProvider);
+                                  }
 
                                   // 2. share nota to WA
                                   _shareNotaWhatsapp(
                                       context, orderData, orderProvider);
                                 } else {
-                                  Fluttertoast.showToast(msg: orderSubmitResponse.message);
+                                  Fluttertoast.showToast(
+                                      msg: orderSubmitResponse.message);
                                 }
-
-                                //
-                                // // if bluetooth has been connected
-                                // if ((await bluetooth.isConnected)!) {
-                                //   // print receipt
-                                //   _printReceipt(orderProvider.orders,
-                                //       orderProvider.totalOrder, dp, sisaBayar);
-                                //
-                                //   // remove all
-                                //   var itemDeleted =
-                                //       await OrderRepo().emptyCart();
-                                //   Navigator.pop(context,
-                                //       itemDeleted); // after finished - back to home
-                                // }
                               },
                               child: const Text('Transaksi',
                                   style: TextStyle(
@@ -493,7 +480,7 @@ class _CartPageState extends State<CartPage> {
       List<Order> orders, int totalOrder, int dp, int sisaBayar) {
     bluetooth.printNewLine();
     bluetooth.printNewLine();
-    bluetooth.printCustom('Mezisan', 0, 1);
+    bluetooth.printCustom(Constant.companyName, 0, 1);
     bluetooth.printNewLine();
     // logo
     // bluetooth.printImage();
@@ -524,19 +511,19 @@ class _CartPageState extends State<CartPage> {
     bluetooth.printNewLine();
   }
 
-  void _shareWhatsapp() {}
-
-  void _postData(OrderProvider orderProvider, int dp, int sisaBayar) async {
-    final prefs = await SharedPreferences.getInstance();
-    var userId = prefs.getString('id'); // user id
-    var orders = orderProvider.orders; // orders
-  }
-
   void _shareNotaWhatsapp(BuildContext context, Map<String, Object> orderData,
       OrderProvider orderProvider) async {
     var invoiceNo = orderData['invoice_no'];
     var customerNm = orderData['customer_nm'];
-    var customerPhone = orderData['customer_phone'];
+    var customerPhone = orderData['customer_phone'] as String;
+
+    // customer phone
+    var leadingPhoneNo = customerPhone.substring(0, 1);
+    if (leadingPhoneNo == "0") {
+      var phone = customerPhone.substring(1);
+      customerPhone = "+62" + phone;
+    }
+
     var currentDate = orderData['transaction_date'];
     var totalBayar =
         Util.rupiahFormat(int.parse(orderData['total_bayar'].toString()));
@@ -546,7 +533,7 @@ class _CartPageState extends State<CartPage> {
 
     // create content of text message / nota
     StringBuffer sb = StringBuffer();
-    sb.write("Mezisan\n");
+    sb.write("${Constant.companyName}\n");
     sb.write("\n");
     sb.write("Invoice No : $invoiceNo\n");
     sb.write("Customer : $customerNm\n");
@@ -565,9 +552,23 @@ class _CartPageState extends State<CartPage> {
     sb.write("Total Bayar : $totalBayar\n");
     sb.write("DP : $dp\n");
     sb.write("Sisa Bayar : $sisaBayar\n");
+
+    var status = _dpFormController.text == '' ? 'LUNAS' : 'DP';
+    sb.write("Status : $status\n");
     sb.write("---------------------------------------------\n");
     sb.write("\n");
-    sb.write("Terima kasih telah order di mezisan\n");
+    sb.write("Terima kasih telah order di ${Constant.companyName}\n");
+    sb.write("\n");
+    sb.write("\n");
+    sb.write("Catatan :\n");
+    int count = 1;
+    for (var order in orderProvider.orders) {
+      var itemNote = order.itemNote;
+      var itemName = order.itemNm;
+      sb.write("$count. ($itemName) \n$itemNote\n");
+      sb.write("\n");
+      count++;
+    }
 
     // encode URI
     var message = Uri.encodeComponent(sb.toString());
@@ -581,5 +582,54 @@ class _CartPageState extends State<CartPage> {
       var itemDeleted = await OrderRepo().emptyCart();
       Navigator.pop(context, itemDeleted); // after finished - back to home
     }
+  }
+
+  void _printNota(BuildContext context, Map<String, String> orderData,
+      OrderProvider orderProvider) async {
+    var invoiceNo = orderData['invoice_no'];
+    var customerNm = orderData['customer_nm'];
+    var currentDate = orderData['transaction_date'];
+    var totalBayar =
+        Util.rupiahFormat(int.parse(orderData['total_bayar'].toString()));
+    var dp = Util.rupiahFormat(int.parse(orderData['dp'].toString()));
+    var sisaBayar =
+        Util.rupiahFormat(int.parse(orderData['sisa_bayar'].toString()));
+
+    bluetooth.printNewLine();
+    bluetooth.printNewLine();
+    bluetooth.printCustom(Constant.companyName, 0, 1);
+    bluetooth.printNewLine();
+    // logo
+    // bluetooth.printImage();
+    bluetooth.printCustom("No Invoice : " + invoiceNo.toString(), 0, 1);
+    bluetooth.printLeftRight("Customer : ", customerNm.toString(), 0);
+    bluetooth.printLeftRight("Tgl Transaksi : ", currentDate.toString(), 0);
+
+    bluetooth.printCustom("==============================", 0, 0);
+
+    for (var order in orderProvider.orders) {
+      var itemName = "";
+      if (order.itemNm.length < 5) {
+        itemName = order.itemNm;
+      } else {
+        itemName = order.itemNm.substring(0, 6);
+      }
+
+      bluetooth.printLeftRight(
+          itemName + " (" + order.itemPcs.toString() + "x)",
+          Util.rupiahFormat(order.itemSubtotal),
+          0);
+    }
+
+    bluetooth.printCustom("==============================", 0, 0);
+    bluetooth.printLeftRight("Tgl Selesai", _dueDateFormController.text, 0);
+    bluetooth.printLeftRight("Total", totalBayar, 0);
+    bluetooth.printLeftRight("DP", dp, 0);
+    bluetooth.printLeftRight("Sisa", sisaBayar, 0);
+    bluetooth.printNewLine();
+    bluetooth.printCustom('Terima kasih atas pesanan anda', 0, 1);
+    // bluetooth.printCustom('Contact: Norrez 0812 3411 9294', 0, 1);
+    bluetooth.printNewLine();
+    bluetooth.printNewLine();
   }
 }

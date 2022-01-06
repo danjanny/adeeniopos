@@ -45,6 +45,8 @@ class OrderSubmit {
 
 class OrderCustomer {
   late String userId;
+  late String companyId;
+  late String invoiceNo;
   late String customerNm;
   late String customerPhone;
   late String transactionDate;
@@ -56,6 +58,19 @@ class OrderCustomer {
 
   OrderCustomer(
       this.userId,
+      this.companyId,
+      this.customerNm,
+      this.customerPhone,
+      this.transactionDate,
+      this.dueDate,
+      this.totalBayar,
+      this.dp,
+      this.sisaBayar,
+      this.orders);
+
+  OrderCustomer.orderHistory(
+      this.userId,
+      this.invoiceNo,
       this.customerNm,
       this.customerPhone,
       this.transactionDate,
@@ -77,6 +92,7 @@ class OrderCustomer {
 
     return {
       'user_id': userId,
+      'company_id': companyId,
       'customer_nm': customerNm,
       'customer_phone': customerPhone,
       'transaction_date': transactionDate,

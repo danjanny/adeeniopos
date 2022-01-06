@@ -14,6 +14,8 @@ class OrderProvider extends ChangeNotifier {
   void getTotalOrder() async {
     _totalOrder = await OrderRepo().getTotalOrder();
     _totalOrder ??= 0;
+    // _totalOrder ??= 0;
+
     notifyListeners();
   }
 

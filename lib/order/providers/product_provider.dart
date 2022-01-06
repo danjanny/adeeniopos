@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:app/api_endpoint.dart';
+import 'package:app/authpos/models/user_model.dart';
 import 'package:app/order/models/product_model.dart';
 import 'package:app/order/repos/order_repo.dart';
 import 'package:app/simple_exception.dart';
@@ -18,11 +19,27 @@ class ProductProvider extends ChangeNotifier {
   int? get totalRowCount => _totalRowCount;
   late int? _totalRowCount = 0;
 
-  static Future<ProductResponse?> getProduct() async {
+  static Future<ProductResponse?> getProduct(User user, String queryFilterProduct) async {
     ProductResponse productResponse;
     try {
-      var productJsonResponse = await http
-          .get(Uri.http(ApiEndpoint.plainDomain, ApiEndpoint.productUrl));
+      // var productJsonResponse = await http
+      //     .get(Uri.https(ApiEndpoint.plainDomain, ApiEndpoint.productUrl));
+
+      // var productJsonResponse =
+      //     await http.get(Uri.parse(ApiEndpoint.productIndexUrl));
+
+      var queryParams = {'company_id': user.companyId, 'product_nm': queryFilterProduct};
+
+      var uri = Uri.http(
+          ApiEndpoint.plainDomain, ApiEndpoint.productIndexUrlNew, queryParams);
+
+      Map<String, String> headers = {
+        'Content-Type': 'application/json;charset=UTF-8',
+        'Charset': 'utf-8'
+      };
+
+      var productJsonResponse = await http.get(uri, headers: headers);
+
       // var productResponse = await http.get(Uri.parse(ApiEndpoint.productUrl));
 
       var productResponseObj =

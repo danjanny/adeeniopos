@@ -30,8 +30,14 @@ class AuthProvider extends ChangeNotifier {
       var userObj = loginResponseObj.user;
       final prefs = await SharedPreferences.getInstance();
       prefs.setInt('admin_status_logged_in', 1);
+
+      // create user object
       prefs.setString('id', userObj.id); // user id
+      prefs.setString('company_id', userObj.companyId); // user id
+      prefs.setString('id_group_access', userObj.idGroupAccess);
       prefs.setString('username', userObj.username); // username
+      prefs.setString('password', userObj.password); // username
+      prefs.setString('full_name', userObj.fullName); // username
 
       userResponse = loginResponseObj;
     } catch (e) {

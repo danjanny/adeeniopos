@@ -10,7 +10,7 @@
         android:allowBackup="false"
         android:fullBackupOnly="false"
         android:icon="@mipmap/ic_launcher"
-        android:label="Mezisan POS">
+        android:label="Adeenio POS">
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"

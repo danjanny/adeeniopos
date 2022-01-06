@@ -2,9 +2,12 @@ import 'dart:convert';
 
 import 'package:app/api_endpoint.dart';
 import 'package:app/order/models/order_customer_model.dart';
+import 'package:app/order/models/order_history_model.dart';
 import 'package:app/order/models/order_model.dart';
+import 'package:app/order/models/update_status_payment_model.dart';
 import 'package:app/simple_exception.dart';
 import 'package:path/path.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'package:http/http.dart' as http;
@@ -116,5 +119,63 @@ class OrderRepo {
     }
 
     return orderSubmitResponse;
+  }
+
+  static Future<UpdateStatusPaymentResponse> updatePaymentStatus(
+      Map<String, dynamic> statusPaymentData) async {
+    UpdateStatusPaymentResponse updateStatusPaymentResponse;
+    try {
+      var updateStatusResponse = await http.post(
+          Uri.parse(ApiEndpoint.updatePaymentStatusUrl),
+          body: {"data": jsonEncode(statusPaymentData)});
+
+      var updateStatusResponseObj = UpdateStatusPaymentResponse.fromJson(
+          jsonDecode(updateStatusResponse.body));
+
+      if (updateStatusResponseObj.status == "error") {
+        throw SimpleException(updateStatusResponseObj.message);
+      }
+      updateStatusPaymentResponse = updateStatusResponseObj;
+    } catch (e) {
+      updateStatusPaymentResponse =
+          UpdateStatusPaymentResponse.error('error', e.toString());
+    }
+
+    return updateStatusPaymentResponse;
+  }
+
+  static Future<OrderHistoryResponse> getOrderHistoryResponse(
+      String invoiceNo) async {
+    OrderHistoryResponse orderHistoryResponse;
+
+    final prefs = await SharedPreferences.getInstance();
+    var userId = prefs.getString('id'); // user id
+
+    var queryParams = {'user_id': userId, 'invoice_no': invoiceNo};
+
+    try {
+      var uri = Uri.http(
+          ApiEndpoint.plainDomain, ApiEndpoint.orderHistoryUrl, queryParams);
+
+      Map<String, String> headers = {
+        'Content-Type': 'application/json;charset=UTF-8',
+        'Charset': 'utf-8'
+      };
+
+      var orderHistoryHttpResponse = await http.get(uri, headers: headers);
+
+      var orderHistoryResponseObj = OrderHistoryResponse.fromJson(
+          jsonDecode(orderHistoryHttpResponse.body));
+
+      if (orderHistoryResponseObj.status == 'error') {
+        throw SimpleException(orderHistoryResponseObj.message);
+      }
+
+      orderHistoryResponse = orderHistoryResponseObj;
+    } catch (e) {
+      orderHistoryResponse = OrderHistoryResponse.error("error", e.toString());
+    }
+
+    return orderHistoryResponse;
   }
 }

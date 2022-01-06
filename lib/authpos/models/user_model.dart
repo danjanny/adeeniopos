@@ -32,17 +32,21 @@ class UserResponse {
 
 class User {
   late String id;
+  late String companyId;
   late String username;
   late String password;
+  late String idGroupAccess;
   late String fullName;
 
-  User(this.id, this.username, this.password, this.fullName);
+
+  User(this.id, this.companyId, this.username, this.password,
+      this.idGroupAccess, this.fullName);
 
   User.profile(this.id, this.username);
 
   factory User.fromJson(Map<String, dynamic> json) {
-    return User(
-        json['id'], json['username'], json['password'], json['full_nm']);
+    return User(json['id'], json['company_id'], json['username'], json['password'],
+        json['id_group_access'], json['full_nm']);
   }
 
   @override

@@ -111,8 +111,6 @@ class SignupPage extends StatelessWidget {
                                       color: Colors.white),
                                   onPressed: () async {
                                     // button event listener
-                                    await authProvider.googleLogin();
-                                    print(authProvider.user.toString());
                                   },
                                   label: const Text('Google',
                                       style: TextStyle(

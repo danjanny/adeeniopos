@@ -6,20 +6,26 @@ import 'package:app/order/models/product_model.dart';
 import 'package:app/order/providers/product_provider.dart';
 import 'package:app/order/repos/order_repo.dart';
 import 'package:app/order/views/cart_page.dart';
+import 'package:app/order/views/order_history_page.dart';
 import 'package:app/order/views/product_detail_page.dart';
+import 'package:app/product/views/add_product_image_page.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_icons/flutter_icons.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
 class ProductPage extends StatefulWidget {
-  ProductPage({Key? key}) : super(key: key);
+  late User user;
+
+  ProductPage({Key? key, required this.user}) : super(key: key);
 
   @override
   State<ProductPage> createState() => _ProductPageState();
 }
 
 class _ProductPageState extends State<ProductPage> {
+  late User user;
+
+  late Map<String, String> _queryParams;
+
   final GlobalKey<RefreshIndicatorState> _keyRefresh =
       GlobalKey<RefreshIndicatorState>();
 
@@ -27,9 +33,13 @@ class _ProductPageState extends State<ProductPage> {
 
   ProductResponse? _productResponse;
 
+  String _queryFilterProduct = "";
+
   @override
   void initState() {
-    ProductProvider.getProduct().then((productResponse) {
+    var user = widget.user;
+    ProductProvider.getProduct(user, _queryFilterProduct)
+        .then((productResponse) {
       setState(() {
         _productResponse = productResponse;
       });
@@ -38,15 +48,45 @@ class _ProductPageState extends State<ProductPage> {
 
   @override
   Widget build(BuildContext context) {
+    var user = widget.user;
     return ChangeNotifierProvider(
         create: (context) => ProductProvider(),
         child: Consumer<ProductProvider>(builder: (_, productProvider, __) {
           return Scaffold(
+            floatingActionButton: Padding(
+              padding: const EdgeInsets.only(bottom: 100),
+              child: FloatingActionButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            AddProductImagePage(user: widget.user)),
+                  ).then((value) {
+                    setState(() {});
+                  });
+                },
+                child: const Icon(Icons.add),
+              ),
+            ),
+            resizeToAvoidBottomInset: false,
             appBar: AppBar(
               elevation: 0,
               automaticallyImplyLeading: false,
-              title: const Text('Mezisan POS'),
+              title: const Text('Kasir POS'),
               actions: [
+                Container(
+                  margin: const EdgeInsets.only(right: 5, top: 5),
+                  child: IconButton(
+                      icon: const Icon(Icons.history),
+                      onPressed: () async {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const OrderHistoryPage()),
+                        );
+                      }),
+                ),
                 Container(
                   margin: const EdgeInsets.only(right: 5, top: 5),
                   child: Stack(
@@ -72,75 +112,115 @@ class _ProductPageState extends State<ProductPage> {
               Container(
                 margin: const EdgeInsets.only(bottom: 110),
                 alignment: Alignment.center,
-                child: FutureBuilder(
-                    future: ProductProvider.getProduct(),
-                    builder: (BuildContext context,
-                        AsyncSnapshot<dynamic> snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const CircularProgressIndicator();
-                      } else {
-                        ProductResponse productResponseObj = snapshot.data;
-                        if (productResponseObj.status == 'error') {
-                          return RefreshIndicator(
-                            key: _keyRefresh,
-                            onRefresh: () => _refreshProducts(),
-                            child: SingleChildScrollView(
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              child: Container(
-                                height: MediaQuery.of(context).size.height / 2,
-                                alignment: Alignment.center,
-                                child: Text(productResponseObj.message),
-                              ),
-                            ),
-                          );
-                        } else {
-                          return RefreshIndicator(
-                            key: _keyRefresh,
-                            onRefresh: () => _refreshProducts(),
-                            child: ListView.builder(
-                                itemCount: productResponseObj.product.length,
-                                itemBuilder: (context, index) {
-                                  var imgUrl = productResponseObj
-                                      .product[index].productImg;
-
-                                  return Container(
-                                    margin: const EdgeInsets.only(
-                                        left: 10, right: 10),
-                                    child: Card(
-                                      child: Container(
-                                        margin: const EdgeInsets.all(25),
-                                        child: ListTile(
-                                            onTap: () {
-                                              var product = productResponseObj
-                                                  .product[index];
-                                              Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                          builder: (context) =>
-                                                              ProductDetailPage(
-                                                                  product:
-                                                                      product)))
-                                                  .then((value) {
-                                                setState(() {
-                                                  _totalRowOrder = value;
-                                                });
-                                              });
-                                            },
-                                            leading: CircleAvatar(
-                                              radius: 30,
-                                              backgroundImage:
-                                                  NetworkImage(imgUrl),
-                                            ),
-                                            title: Text(productResponseObj
-                                                .product[index].productName)),
-                                      ),
+                child: Column(
+                  children: [
+                    Flexible(
+                        flex: 2,
+                        child: Container(
+                          margin: const EdgeInsets.all(20),
+                          color: Colors.white54,
+                          child: TextField(
+                            // controller: _invoiceNoFormController,
+                            textCapitalization: TextCapitalization.characters,
+                            onChanged: (value) async {
+                              setState(() {
+                                _queryFilterProduct = value;
+                              });
+                            },
+                            decoration: const InputDecoration(
+                                hintText: 'Masukkan nama produk'),
+                          ),
+                        )),
+                    Flexible(
+                      flex: 8,
+                      child: FutureBuilder(
+                          future: ProductProvider.getProduct(
+                              user, _queryFilterProduct),
+                          builder: (BuildContext context,
+                              AsyncSnapshot<dynamic> snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                  child: CircularProgressIndicator());
+                            } else {
+                              ProductResponse productResponseObj =
+                                  snapshot.data;
+                              if (productResponseObj.status == 'error') {
+                                return RefreshIndicator(
+                                  key: _keyRefresh,
+                                  onRefresh: () => _refreshProducts(),
+                                  child: SingleChildScrollView(
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(),
+                                    child: Container(
+                                      height:
+                                          MediaQuery.of(context).size.height /
+                                              2,
+                                      alignment: Alignment.center,
+                                      child: Text(productResponseObj.message),
                                     ),
-                                  );
-                                }),
-                          );
-                        }
-                      }
-                    }),
+                                  ),
+                                );
+                              } else {
+                                return RefreshIndicator(
+                                  key: _keyRefresh,
+                                  onRefresh: () => _refreshProducts(),
+                                  child: ListView.separated(
+                                    itemCount:
+                                        productResponseObj.product.length,
+                                    itemBuilder: (context, index) {
+                                      var imgUrl = productResponseObj
+                                          .product[index].productImg;
+
+                                      print(imgUrl);
+
+                                      return Container(
+                                        margin: const EdgeInsets.only(
+                                            left: 10, right: 10),
+                                        child: Container(
+                                          margin: const EdgeInsets.all(25),
+                                          child: ListTile(
+                                              onTap: () {
+                                                var product = productResponseObj
+                                                    .product[index];
+                                                Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            ProductDetailPage(
+                                                                product:
+                                                                    product))).then(
+                                                    (value) {
+                                                  setState(() {
+                                                    _totalRowOrder = value;
+                                                  });
+                                                });
+                                              },
+                                              leading: CircleAvatar(
+                                                radius: 30,
+                                                backgroundImage:
+                                                    NetworkImage(imgUrl),
+                                              ),
+                                              title: Text(productResponseObj
+                                                  .product[index].productName)),
+                                        ),
+                                      );
+                                    },
+                                    separatorBuilder:
+                                        (BuildContext context, int index) {
+                                      return const Divider(
+                                        indent: 25,
+                                        endIndent: 25,
+                                      );
+                                    },
+                                  ),
+                                );
+                              }
+                            }
+                          }),
+                    ),
+                  ],
+                ),
               ),
               FutureBuilder(
                 future: OrderRepo().countOrderRow(),
@@ -151,9 +231,9 @@ class _ProductPageState extends State<ProductPage> {
                   } else {
                     var itemPcs = snapshot.data;
                     var itemPcsLabel = "";
-                    if(itemPcs == 1) {
+                    if (itemPcs == 1) {
                       itemPcsLabel = itemPcs.toString() + ' item';
-                    } else if(itemPcs > 1) {
+                    } else if (itemPcs > 1) {
                       itemPcsLabel = itemPcs.toString() + ' items';
                     }
 
@@ -192,7 +272,8 @@ class _ProductPageState extends State<ProductPage> {
                                       setState(() {});
                                     });
                                   },
-                                  child: Text('$itemPcsLabel \u22C5 Cek Keranjang',
+                                  child: Text(
+                                      '$itemPcsLabel \u22C5 Cek Keranjang',
                                       style: const TextStyle(
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold,
@@ -251,10 +332,17 @@ class _ProductPageState extends State<ProductPage> {
   }
 
   Future<ProductResponse?> _refreshProducts() async {
-    ProductProvider.getProduct().then((productResponse) {
-      setState(() {
-        _productResponse = productResponse;
-      });
+    var user = widget.user;
+    ProductProvider.getProduct(user, _queryFilterProduct)
+        .then((productResponse) {
+      if (mounted) {
+        setState(() {
+          _productResponse = productResponse;
+        });
+        setState(() {
+          _productResponse = productResponse;
+        });
+      }
     });
   }
 }

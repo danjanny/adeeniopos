@@ -1,6 +1,8 @@
 import 'package:app/authpos/models/user_model.dart';
 import 'package:app/authpos/providers/auth_provider.dart';
+import 'package:app/constant.dart';
 import 'package:app/order/views/product_page.dart';
+import 'package:app/order/views/report_page.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:sn_progress_dialog/sn_progress_dialog.dart';
@@ -18,6 +20,7 @@ class LoginPage extends StatelessWidget {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: Container(
+        color: Colors.white,
         padding: const EdgeInsets.all(24),
         alignment: Alignment.center,
         child: Column(
@@ -25,7 +28,9 @@ class LoginPage extends StatelessWidget {
           children: [
             Expanded(
               child:
-                  Image.asset('assets/mzn_color.png', width: 250, height: 250),
+                  // Image.asset('assets/logo-komunigrafik-blog.png', width: 250, height: 250),
+                  Image.asset(Constant.companyLoginLogo,
+                      width: 250, height: 250),
             ),
             Expanded(
                 child: Container(
@@ -86,8 +91,7 @@ class LoginPage extends StatelessWidget {
                           width: double.infinity,
                           height: 50),
                     ],
-                  )
-              ),
+                  )),
             ))
           ],
         ),
@@ -117,8 +121,23 @@ class LoginPage extends StatelessWidget {
     _pd.close();
 
     if (userResponse!.status == 'ok') {
-      Navigator.push(
-          context, MaterialPageRoute(builder: (context) => ProductPage()));
+      var idGroupAccess = userResponse.user.idGroupAccess;
+      // 1 = Admin
+      if (idGroupAccess == "1") {
+        // Navigator.push(context,
+        //     MaterialPageRoute(builder: (context) => const ReportPage()));
+
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => ReportPage(user: userResponse.user)));
+      } else if (idGroupAccess == "2") {
+        // 2 = Kasir
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => ProductPage(user: userResponse.user)));
+      }
     } else {
       Fluttertoast.showToast(msg: userResponse.message);
     }
