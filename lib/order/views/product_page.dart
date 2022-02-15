@@ -53,22 +53,22 @@ class _ProductPageState extends State<ProductPage> {
         create: (context) => ProductProvider(),
         child: Consumer<ProductProvider>(builder: (_, productProvider, __) {
           return Scaffold(
-            floatingActionButton: Padding(
-              padding: const EdgeInsets.only(bottom: 100),
-              child: FloatingActionButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) =>
-                            AddProductImagePage(user: widget.user)),
-                  ).then((value) {
-                    setState(() {});
-                  });
-                },
-                child: const Icon(Icons.add),
-              ),
-            ),
+            // floatingActionButton: Padding(
+            //   padding: const EdgeInsets.only(bottom: 100),
+            //   child: FloatingActionButton(
+            //     onPressed: () {
+            //       Navigator.push(
+            //         context,
+            //         MaterialPageRoute(
+            //             builder: (context) =>
+            //                 AddProductImagePage(user: widget.user)),
+            //       ).then((value) {
+            //         setState(() {});
+            //       });
+            //     },
+            //     child: const Icon(Icons.add),
+            //   ),
+            // ),
             resizeToAvoidBottomInset: false,
             appBar: AppBar(
               elevation: 0,
